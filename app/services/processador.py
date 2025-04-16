@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 
 def dataExtraction(caminho_pdf):
     try:
-        # Carrega as variáveis do .env
         load_dotenv()
 
         conn = psycopg2.connect(
@@ -17,9 +16,6 @@ def dataExtraction(caminho_pdf):
         )
         cursor = conn.cursor()
 
-        print("Banco de dados:", os.getenv("DATABASE_NAME"))
-
-        # Leitura e extração do PDF
         with pdfplumber.open(caminho_pdf) as pdf:
             texto = "\n".join(pagina.extract_text() for pagina in pdf.pages if pagina.extract_text())
 
@@ -37,34 +33,39 @@ def dataExtraction(caminho_pdf):
             "father_age": "",
             "mother_age": ""
         }
+        
+        for i, linha in enumerate(linhas):
+            linha_lower = linha.lower().strip()
 
-        for linha in linhas:
-            linha_lower = linha.lower()
-
-            if "nome completo" in linha_lower and ":" in linha:
+            if linha_lower.startswith("nome completo:"):
                 dados["full_name"] = linha.split(":", 1)[1].strip()
-            elif "data de nascimento" in linha_lower and ":" in linha:
+            elif linha_lower.startswith("data de nascimento:"):
                 dados["birth_date"] = linha.split(":", 1)[1].strip()
-            elif "endereço" in linha_lower and ":" in linha:
+            elif linha_lower.startswith("endereço:"):
                 dados["address"] = linha.split(":", 1)[1].strip()
-            elif "profissão" in linha_lower and ":" in linha:
+            elif linha_lower.startswith("profissão:"):
                 dados["profession"] = linha.split(":", 1)[1].strip()
-            elif "telefone" in linha_lower and ":" in linha:
+            elif linha_lower.startswith("telefone:"):
                 dados["phone"] = linha.split(":", 1)[1].strip()
-            elif "e-mail" in linha_lower and ":" in linha:
+            elif linha_lower.startswith("e-mail:"):
                 dados["email"] = linha.split(":", 1)[1].strip()
-            elif "nome do pai" in linha_lower and ":" in linha:
-                dados["father_name"] = linha.split(":", 1)[1].strip()
-            elif "nome da mãe" in linha_lower and ":" in linha:
-                dados["mother_name"] = linha.split(":", 1)[1].strip()
-            elif "queixa principal" in linha_lower and ":" in linha:
+            elif linha_lower.startswith("nome do pai:"):
+                if i + 1 < len(linhas):
+                    dados["father_name"] = linhas[i + 1].strip()
+                if i + 2 < len(linhas):
+                    dados["father_age"] = linhas[i + 2].strip()
+            elif linha_lower.startswith("nome da mãe:"):
+                if i + 1 < len(linhas):
+                    dados["mother_name"] = linhas[i + 1].strip()
+                if i + 2 < len(linhas):
+                    dados["mother_age"] = linhas[i + 2].strip()
+            elif linha_lower.startswith("queixa principal:"):
                 dados["main_complaint"] = linha.split(":", 1)[1].strip()
-            elif "idade:" in linha and ":" in linha:
-                if not dados["father_age"]:
-                    dados["father_age"] = linha.split(":", 1)[1].strip()
-                elif not dados["mother_age"]:
-                    dados["mother_age"] = linha.split(":", 1)[1].strip()
 
+        print("✅ Dados inseridos com sucesso no banco de dados!\n")
+        for k, v in dados.items():
+            print(f"{k}: {v}")
+        
         cursor.execute("""
             INSERT INTO user_data (
                 full_name, birth_date, address, profession, phone,
@@ -83,10 +84,7 @@ def dataExtraction(caminho_pdf):
         ))
 
         conn.commit()
-        print("✅ Dados inseridos com sucesso no banco de dados!")
-        print("\n=== DADOS EXTRAÍDOS DO PRONTUÁRIO PSICOLÓGICO ===")
-        for chave, valor in dados.items():
-            print(f"{chave}: {valor}")
+        
 
     except Exception as e:
         print("Erro:", e)
