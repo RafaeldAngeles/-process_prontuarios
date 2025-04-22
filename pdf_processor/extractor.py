@@ -3,8 +3,6 @@ from .interfaces.i_extractor import IExtractor
 class DataExtractor(IExtractor):
     def extract(self, text: str) -> dict:
         linhas = [l.strip() for l in text.splitlines() if l.strip()]
-
-        print("📃 DEBUG - Linhas extraídas do PDF:")
         for idx, l in enumerate(linhas):
             print(f"{idx:02d}: {l}")
 
