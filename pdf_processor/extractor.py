@@ -2,43 +2,76 @@ from .interfaces.i_extractor import IExtractor
 
 class DataExtractor(IExtractor):
     def extract(self, text: str) -> dict:
-        linhas = [linha.strip() for linha in text.splitlines() if linha.strip()]
+        linhas = [l.strip() for l in text.splitlines() if l.strip()]
+
+        print("📃 DEBUG - Linhas extraídas do PDF:")
+        for idx, l in enumerate(linhas):
+            print(f"{idx:02d}: {l}")
+
         dados = {
-            "full_name": "", "birth_date": "", "address": "", "profession": "",
-            "phone": "", "email": "", "father_name": "", "mother_name": "",
-            "main_complaint": "", "father_age": "", "mother_age": ""
+            "full_name": "",
+            "birth_date": "",
+            "address": "",
+            "profession": "",
+            "phone": "",
+            "email": "",
+            "father_name": "",
+            "mother_name": "",
+            "main_complaint": "",
+            "father_age": "",
+            "mother_age": ""
         }
 
-        try:
-             for i, linha in enumerate(linhas):
-                linha_lower = linha.lower().strip()
+        for linha in linhas:
+            linha_lower = linha.lower()
 
-                if linha_lower.startswith("nome completo:"):
-                    dados["full_name"] = linha.split(":", 1)[1].strip()
-                elif linha_lower.startswith("data de nascimento:"):
-                    dados["birth_date"] = linha.split(":", 1)[1].strip()
-                elif linha_lower.startswith("endereço:"):
-                    dados["address"] = linha.split(":", 1)[1].strip()
-                elif linha_lower.startswith("profissão:"):
-                    dados["profession"] = linha.split(":", 1)[1].strip()
-                elif linha_lower.startswith("telefone:"):
-                    dados["phone"] = linha.split(":", 1)[1].strip()
-                elif linha_lower.startswith("e-mail:"):
-                    dados["email"] = linha.split(":", 1)[1].strip()
-                elif linha_lower.startswith("nome do pai:"):
-                    if i + 1 < len(linhas):
-                        dados["father_name"] = linhas[i + 1].strip()
-                    if i + 2 < len(linhas):
-                        dados["father_age"] = linhas[i + 2].strip()
-                elif linha_lower.startswith("nome da mãe:"):
-                    if i + 1 < len(linhas):
-                        dados["mother_name"] = linhas[i + 1].strip()
-                    if i + 2 < len(linhas):
-                        dados["mother_age"] = linhas[i + 2].strip()
-                elif linha_lower.startswith("queixa principal:"):
-                    dados["main_complaint"] = linha.split(":", 1)[1].strip()
-        except Exception as e:
-            print("Erro ao extrair os dados:", e)
+            if "nome completo" in linha_lower:
+                dados["full_name"] = self.extract_value(linha)
+
+            elif "data de nascimento" in linha_lower:
+                dados["birth_date"] = self.formatar_data(self.extract_value(linha))
+
+            elif "endereço" in linha_lower:
+                dados["address"] = self.extract_value(linha)
+
+            elif "profissão" in linha_lower:
+                dados["profession"] = self.extract_value(linha)
+
+            elif "telefone" in linha_lower:
+                dados["phone"] = self.extract_value(linha)
+
+            elif "e-mail" in linha_lower:
+                dados["email"] = self.extract_value(linha)
+
+            elif "nome do pai" in linha_lower:
+                dados["father_name"] = self.extract_value(linha)
+
+            elif "idade" in linha_lower and not dados["father_age"]:
+                dados["father_age"] = self.extract_value(linha)
+
+            elif "nome da mãe" in linha_lower:
+                dados["mother_name"] = self.extract_value(linha)
+
+            elif "idade" in linha_lower and not dados["mother_age"]:
+                dados["mother_age"] = self.extract_value(linha)
+
+            elif "queixa principal" in linha_lower:
+                if not dados["main_complaint"]:
+                    dados["main_complaint"] = self.extract_value(linha)
 
         return dados
 
+    def extract_value(self, linha: str) -> str:
+        """Extraí o valor após o ":" e remove espaços em branco extras."""
+        try:
+            return linha.split(":", 1)[1].strip() if ":" in linha else ""
+        except IndexError:
+            return ""
+
+    def formatar_data(self, data_br: str) -> str:
+        """Formata a data do formato DD/MM/AAAA para YYYY-MM-DD."""
+        try:
+            dia, mes, ano = data_br.split("/")
+            return f"{ano}-{mes.zfill(2)}-{dia.zfill(2)}"
+        except:
+            return ""
