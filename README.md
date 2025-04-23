@@ -37,5 +37,5 @@ Este projeto tem como objetivo automatizar a leitura, extração, armazenamento 
 - Uvicorn
 - SQLite / PostgreSQL (configurável)
 - Pydantic
-- PyPDF2 ou pdfrw (para leitura/preenchimento de PDFs)
+- pdfplumber
 - Postman (para testes manuais)
